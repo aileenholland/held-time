@@ -1,0 +1,35 @@
+/* Held Time Report — custom styles (Tailwind CDN handles most styling) */
+
+/* Sticky table headers */
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Truncate long text in table cells */
+td.max-w-xs {
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+td.max-w-xs:hover {
+  white-space: normal;
+  overflow: visible;
+  background: white;
+  z-index: 5;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+/* Sort arrow indicator */
+th[onclick]:hover::after {
+  content: ' ↕';
+  font-size: 0.7em;
+  opacity: 0.5;
+}
+
+th.sort-asc::after  { content: ' ↑'; font-size: 0.7em; }
+th.sort-desc::after { content: ' ↓'; font-size: 0.7em; }

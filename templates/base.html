@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Held Time Report{% endblock %} — Clearspace</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            clearspace: {
+              blue:   '#1B4F8A',
+              teal:   '#2A9D8F',
+              light:  '#F0F4F8',
+              dark:   '#1A202C',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen font-sans">
+
+  <!-- Top nav -->
+  <header class="bg-clearspace-blue text-white shadow-md">
+    <div class="max-w-screen-2xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-xl font-bold tracking-wide">Clearspace</span>
+        <span class="text-blue-300 text-lg font-light">|</span>
+        <span class="text-lg font-medium">Held Time Report</span>
+      </div>
+      <div class="text-sm text-blue-200">{% block header_right %}{% endblock %}</div>
+    </div>
+  </header>
+
+  <!-- Page content -->
+  <main class="max-w-screen-2xl mx-auto px-6 py-8">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="border-t border-gray-200 mt-12 py-4 text-center text-xs text-gray-400">
+    Clearspace Offices &mdash; Design Group &mdash; Internal Tool
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
