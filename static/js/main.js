@@ -35,6 +35,45 @@ function sortTable(tableId, colIndex) {
   });
 }
 
+// ── Editable cells (COs + Notes) ──────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.editable-cell').forEach(input => {
+    const original = input.value;
+
+    input.addEventListener('blur', () => {
+      const value   = input.value.trim();
+      const project = input.dataset.project;
+      const field   = input.dataset.field;
+
+      // Skip save if nothing changed
+      if (value === original && value === input.dataset.saved) return;
+
+      // Strip $ and commas before saving numeric fields
+      const saveVal = field === 'cos' ? value.replace(/[$,]/g, '') : value;
+
+      fetch('/api/override', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ project_number: project, field, value: saveVal }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.ok) {
+            input.dataset.saved = value;
+            input.classList.add('saved-flash');
+            setTimeout(() => input.classList.remove('saved-flash'), 800);
+          }
+        })
+        .catch(() => {});
+    });
+
+    // Allow Tab/Enter to move to next editable cell
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    });
+  });
+});
+
 // ── Collapsible sections ───────────────────────────────────────────────────
 function toggleSection(sectionId, btn) {
   const el = document.getElementById(sectionId);

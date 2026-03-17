@@ -6,7 +6,20 @@
   {% if is_dummy %}
     <span class="bg-yellow-400 text-yellow-900 text-xs font-semibold px-2 py-1 rounded">DUMMY DATA</span>
   {% endif %}
-  <span class="ml-3">Week of {{ report_date }}</span>
+  <div class="flex items-center gap-3 text-sm text-blue-200">
+    {% if file_info and file_info.billing_file %}
+      <span title="Fee data from: {{ file_info.billing_file }}">
+        📄 {{ file_info.billing_file }}
+        {% if file_info.billing_date %}<span class="text-blue-300">({{ file_info.billing_date }})</span>{% endif %}
+      </span>
+    {% endif %}
+    <span class="text-blue-300">|</span>
+    <span>{{ report_date }}</span>
+    <a href="/" title="Reload data from latest Excel file"
+       class="ml-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded transition-colors">
+      ↺ Refresh
+    </a>
+  </div>
 {% endblock %}
 
 {% block content %}
@@ -40,25 +53,32 @@
 
 {# ── Summary cards ────────────────────────────────────────────────────────── #}
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-  {% set cards = [
-    ("Active Projects",      active_summary.total,                    "bg-white",             "text-clearspace-blue", ""),
-    ("Over Fee (Active)",    active_summary.over_fee,                 "bg-red-50",            "text-red-600",         ""),
-    ("Active Held Time",     active_summary.total_held,               "bg-white",             "text-gray-800",        "$"),
-    ("Total Fees Sold",      active_summary.total_fees_sold,          "bg-white",             "text-gray-800",        "$"),
-  ] %}
-  {% for label, value, bg, color, prefix in cards %}
-    <div class="rounded-xl border border-gray-200 {{ bg }} shadow-sm p-5">
-      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{{ label }}</p>
-      {% if prefix == "$" %}
-        <p class="text-2xl font-bold {{ color }}">
-          {% if value < 0 %}<span class="text-red-500">(${{ "{:,.0f}".format(value | abs) }})</span>
-          {% else %}${{ "{:,.0f}".format(value) }}{% endif %}
-        </p>
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
+    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Active Projects</p>
+    <p class="text-2xl font-bold text-clearspace-blue">{{ active_summary.total }}</p>
+  </div>
+  <div class="rounded-xl border border-gray-200 bg-red-50 shadow-sm p-5">
+    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Over Fee (Active)</p>
+    <p class="text-2xl font-bold text-red-600">{{ active_summary.over_fee }}</p>
+  </div>
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
+    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Active Held Time</p>
+    <p class="text-2xl font-bold {% if active_summary.total_held < 0 %}text-red-600{% else %}text-gray-800{% endif %}">
+      {% if active_summary.total_held < 0 %}
+        (${{ "{:,.0f}".format(active_summary.total_held | abs) }})
+      {% elif active_summary.total_held > 0 %}
+        ${{ "{:,.0f}".format(active_summary.total_held) }}
       {% else %}
-        <p class="text-2xl font-bold {{ color }}">{{ value }}</p>
+        &mdash;
       {% endif %}
-    </div>
-  {% endfor %}
+    </p>
+  </div>
+  <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
+    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Fees Sold</p>
+    <p class="text-2xl font-bold text-gray-800">
+      ${{ "{:,.0f}".format(active_summary.total_fees_sold) }}
+    </p>
+  </div>
 </div>
 
 {# ── Active Projects table ────────────────────────────────────────────────── #}
@@ -73,53 +93,92 @@
       <thead class="bg-clearspace-blue text-white text-xs uppercase tracking-wide">
         <tr>
           <th class="px-3 py-3 text-left cursor-pointer" onclick="sortTable('active-table',0)">Project</th>
-          <th class="px-3 py-3 text-left cursor-pointer" onclick="sortTable('active-table',1)">Status</th>
+          <th class="px-3 py-3 text-left cursor-pointer" onclick="sortTable('active-table',1)">Phase</th>
           <th class="px-3 py-3 text-left cursor-pointer" onclick="sortTable('active-table',2)">Designer</th>
-          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',3)">SQFT</th>
-          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',4)">Fees Sold</th>
-          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',5)">Actual Fees</th>
-          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',6)">Sold vs Spent</th>
-          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',7)">COs</th>
-          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',8)">Fee + CO</th>
-          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',9)">% Phase</th>
-          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',10)">% Fee</th>
-          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',11)">Held Time</th>
-          <th class="px-3 py-3 text-left">Category</th>
+          <th class="px-3 py-3 text-left cursor-pointer" onclick="sortTable('active-table',3)">POD</th>
+          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',4)">SQFT</th>
+          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',5)">Fees Sold</th>
+          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',6)">Actual Fees</th>
+          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',7)">Sold vs Spent</th>
+          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',8)">COs</th>
+          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',9)">Fee + CO</th>
+          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',10)">% Phase</th>
+          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',11)">% Fee</th>
+          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('active-table',12)">Held Time</th>
           <th class="px-3 py-3 text-left">Notes</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100">
         {% for p in active_projects %}
-          {% set over = p.held_time < 0 %}
-          <tr class="{% if over %}bg-red-50 hover:bg-red-100{% else %}bg-white hover:bg-gray-50{% endif %} transition-colors">
+          {% set over       = p.held_time is not none and p.held_time < 0 %}
+          {% set fee_alert  = p.pct_fee is not none and p.pct_phase is not none and p.pct_fee > p.pct_phase + 0.10 and p.pct_fee <= 1.0 %}
+          <tr class="{% if over %}bg-red-50 hover:bg-red-100{% elif fee_alert %}bg-orange-50 hover:bg-orange-100{% else %}bg-white hover:bg-gray-50{% endif %} transition-colors">
             <td class="px-3 py-2.5 font-medium max-w-xs">
-              <span class="text-gray-400 text-xs mr-1">[{{ p.id }}]</span>{{ p.name }}
+              <span class="text-gray-400 text-xs mr-1">[{{ p.number }}]</span>{{ p.name }}
             </td>
-            <td class="px-3 py-2.5 whitespace-nowrap text-gray-600">{{ p.status }}</td>
-            <td class="px-3 py-2.5 whitespace-nowrap">{{ p.designer }}</td>
-            <td class="px-3 py-2.5 text-right text-gray-600">{{ "{:,}".format(p.sqft) }}</td>
-            <td class="px-3 py-2.5 text-right">${{ "{:,.0f}".format(p.fees_sold) }}</td>
-            <td class="px-3 py-2.5 text-right">${{ "{:,.0f}".format(p.actual_fees) }}</td>
-            <td class="px-3 py-2.5 text-right font-medium {% if p.sold_vs_spent < 0 %}text-red-600{% else %}text-green-600{% endif %}">
-              {% if p.sold_vs_spent < 0 %}(${{ "{:,.0f}".format(p.sold_vs_spent | abs) }}){% else %}${{ "{:,.0f}".format(p.sold_vs_spent) }}{% endif %}
+            <td class="px-3 py-2.5 whitespace-nowrap text-xs text-gray-500">
+              {{ p.phase or '—' }}
+            </td>
+            <td class="px-3 py-2.5 whitespace-nowrap">{{ p.designer or '—' }}</td>
+            <td class="px-3 py-2.5 whitespace-nowrap">
+              {% if p.pod %}
+                <span class="text-xs font-medium px-2 py-0.5 rounded
+                  {% if 'POD 1' in p.pod %}bg-blue-100 text-blue-700
+                  {% elif 'POD 2' in p.pod %}bg-purple-100 text-purple-700
+                  {% else %}bg-teal-100 text-teal-700{% endif %}">
+                  {{ p.pod }}
+                </span>
+              {% else %}&mdash;{% endif %}
             </td>
             <td class="px-3 py-2.5 text-right text-gray-600">
-              {% if p.cos > 0 %}${{ "{:,.0f}".format(p.cos) }}{% else %}&mdash;{% endif %}
+              {% if p.sqft %}{{ "{:,}".format(p.sqft) }}{% else %}&mdash;{% endif %}
             </td>
-            <td class="px-3 py-2.5 text-right">${{ "{:,.0f}".format(p.fee_plus_co) }}</td>
-            <td class="px-3 py-2.5 text-right text-gray-600">{{ "{:.0%}".format(p.pct_phase) }}</td>
-            <td class="px-3 py-2.5 text-right {% if p.pct_fee > 1 %}text-red-600 font-semibold{% else %}text-gray-700{% endif %}">
-              {{ "{:.0%}".format(p.pct_fee) if p.pct_fee else '—' }}
+            <td class="px-3 py-2.5 text-right">
+              {% if p.fees_sold %}${{ "{:,.0f}".format(p.fees_sold) }}{% else %}&mdash;{% endif %}
             </td>
-            <td class="px-3 py-2.5 text-right font-semibold {% if over %}text-red-600{% else %}text-green-600{% endif %}">
-              {% if over %}(${{ "{:,.0f}".format(p.held_time | abs) }}){% else %}${{ "{:,.0f}".format(p.held_time) }}{% endif %}
+            <td class="px-3 py-2.5 text-right">
+              {% if p.actual_fees is not none %}${{ "{:,.0f}".format(p.actual_fees) }}{% else %}&mdash;{% endif %}
             </td>
-            <td class="px-3 py-2.5">
-              {% if p.ht_category %}
-                <span class="bg-red-100 text-red-700 text-xs font-medium px-2 py-0.5 rounded">{{ p.ht_category }}</span>
-              {% endif %}
+            <td class="px-3 py-2.5 text-right font-medium {% if p.sold_vs_spent is not none and p.sold_vs_spent < 0 %}text-red-600{% elif p.sold_vs_spent is not none %}text-green-600{% else %}text-gray-400{% endif %}">
+              {% if p.sold_vs_spent is not none %}
+                {% if p.sold_vs_spent < 0 %}(${{ "{:,.0f}".format(p.sold_vs_spent | abs) }}){% else %}${{ "{:,.0f}".format(p.sold_vs_spent) }}{% endif %}
+              {% else %}&mdash;{% endif %}
             </td>
-            <td class="px-3 py-2.5 text-gray-500 text-xs max-w-xs">{{ p.notes }}</td>
+            <td class="px-3 py-2.5 text-right">
+              <input type="text"
+                     data-project="{{ p.number }}"
+                     data-field="cos"
+                     value="{{ p.cos | int if p.cos is not none and p.cos > 0 else '' }}"
+                     placeholder="—"
+                     class="editable-cell w-20 text-right bg-transparent border-b border-transparent hover:border-gray-300 focus:border-clearspace-blue focus:outline-none focus:bg-white px-1 py-0.5 rounded-sm text-sm text-gray-600"
+              />
+            </td>
+            <td class="px-3 py-2.5 text-right">
+              {% if p.fee_plus_co is not none %}${{ "{:,.0f}".format(p.fee_plus_co) }}{% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-3 py-2.5 text-right text-gray-600">
+              {% if p.pct_phase is not none %}{{ "{:.0%}".format(p.pct_phase) }}{% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-3 py-2.5 text-right font-semibold
+              {% if p.pct_fee is not none and p.pct_fee > 1 %}text-red-600
+              {% elif fee_alert %}text-orange-600
+              {% else %}text-gray-700{% endif %}">
+              {% if p.pct_fee is not none %}{{ "{:.0%}".format(p.pct_fee) }}{% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-3 py-2.5 text-right font-semibold {% if over %}text-red-600{% elif p.held_time is not none %}text-green-600{% else %}text-gray-400{% endif %}">
+              {% if p.held_time is not none %}
+                {% if over %}(${{ "{:,.0f}".format(p.held_time | abs) }}){% else %}${{ "{:,.0f}".format(p.held_time) }}{% endif %}
+              {% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-3 py-2.5 notes-cell">
+              <input type="text"
+                     data-project="{{ p.number }}"
+                     data-field="notes"
+                     value="{{ p.notes | e }}"
+                     placeholder="Add note…"
+                     class="editable-cell w-full bg-transparent border-b border-transparent hover:border-gray-300 focus:border-clearspace-blue focus:outline-none focus:bg-white px-1 py-0.5 rounded-sm text-xs text-gray-500"
+              />
+            </td>
           </tr>
         {% else %}
           <tr><td colspan="14" class="px-4 py-8 text-center text-gray-400">No active projects match the current filters.</td></tr>
@@ -127,20 +186,18 @@
       </tbody>
       <tfoot class="bg-gray-100 text-xs font-bold border-t-2 border-gray-300">
         <tr>
-          <td colspan="4" class="px-3 py-2.5 text-gray-600">Totals</td>
-          <td class="px-3 py-2.5 text-right">${{ "{:,.0f}".format(active_projects | sum(attribute='fees_sold')) }}</td>
-          <td class="px-3 py-2.5 text-right">${{ "{:,.0f}".format(active_projects | sum(attribute='actual_fees')) }}</td>
-          <td class="px-3 py-2.5 text-right {% if active_projects | sum(attribute='sold_vs_spent') < 0 %}text-red-600{% else %}text-green-600{% endif %}">
-            {% set svs = active_projects | sum(attribute='sold_vs_spent') %}
-            {% if svs < 0 %}(${{ "{:,.0f}".format(svs | abs) }}){% else %}${{ "{:,.0f}".format(svs) }}{% endif %}
+          <td colspan="4" class="px-3 py-2.5 text-gray-600">Totals ({{ active_projects | length }} projects)</td>
+          <td class="px-3 py-2.5 text-right text-gray-500">
+            {{ "{:,}".format(active_projects | selectattr('sqft') | sum(attribute='sqft')) }} sf
           </td>
-          <td class="px-3 py-2.5 text-right">${{ "{:,.0f}".format(active_projects | sum(attribute='cos')) }}</td>
-          <td class="px-3 py-2.5 text-right">${{ "{:,.0f}".format(active_projects | sum(attribute='fee_plus_co')) }}</td>
-          <td colspan="2" class="px-3 py-2.5"></td>
-          <td class="px-3 py-2.5 text-right {% if active_summary.total_held < 0 %}text-red-600{% else %}text-green-600{% endif %}">
-            {% if active_summary.total_held < 0 %}(${{ "{:,.0f}".format(active_summary.total_held | abs) }}){% else %}${{ "{:,.0f}".format(active_summary.total_held) }}{% endif %}
+          <td class="px-3 py-2.5 text-right">
+            ${{ "{:,.0f}".format(active_projects | selectattr('fees_sold') | sum(attribute='fees_sold')) }}
           </td>
-          <td colspan="2"></td>
+          <td class="px-3 py-2.5 text-right">
+            {% set act = active_projects | selectattr('actual_fees') | list %}
+            {% if act %}${{ "{:,.0f}".format(act | sum(attribute='actual_fees')) }}{% else %}&mdash;{% endif %}
+          </td>
+          <td colspan="7" class="px-3 py-2.5"></td>
         </tr>
       </tfoot>
     </table>
@@ -155,79 +212,218 @@
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
     </svg>
     Completed Projects
-    <span class="text-sm font-normal text-gray-400">({{ completed_projects | length }})</span>
+    <span class="text-sm font-normal text-gray-400">({{ completed_projects | length }} — from Excel tracker · D-Completion confirmed in Wrike)</span>
   </button>
+
+  {# ── Held Time by POD summary ────────────────────────────────────────────── #}
+  {% if completed_pod_summary %}
+  <div class="mb-4 rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+    <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+      <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Held Time by POD — Completed Projects</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="text-xs uppercase tracking-wide text-gray-500 bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="px-4 py-2 text-left">POD</th>
+            <th class="px-4 py-2 text-right">Projects</th>
+            <th class="px-4 py-2 text-right">Fees Sold</th>
+            <th class="px-4 py-2 text-right">Projects Over Fee</th>
+            <th class="px-4 py-2 text-right">Over-Fee $ (Total)</th>
+            <th class="px-4 py-2 text-right">Over-Fee % of Fees Sold</th>
+            <th class="px-4 py-2 text-left pl-6">Distribution</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {%- set ns = namespace(total_over=0.0, total_fees_all=0.0, total_over_count=0) -%}
+          {% for row in completed_pod_summary %}
+            {%- if row.held_time_over is not none -%}{%- set ns.total_over = ns.total_over + row.held_time_over -%}{%- endif -%}
+            {%- if row.fees_sold is not none -%}{%- set ns.total_fees_all = ns.total_fees_all + row.fees_sold -%}{%- endif -%}
+            {%- set ns.total_over_count = ns.total_over_count + row.over_count -%}
+          {% endfor %}
+          {% for row in completed_pod_summary %}
+          {% set has_over = row.held_time_over is not none and row.held_time_over < 0 %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-2.5 font-medium">
+              {% if row.pod and row.pod != 'Unassigned' %}
+                <span class="text-xs font-semibold px-2 py-0.5 rounded
+                  {% if 'POD 1' in row.pod %}bg-blue-100 text-blue-700
+                  {% elif 'POD 2' in row.pod %}bg-purple-100 text-purple-700
+                  {% else %}bg-teal-100 text-teal-700{% endif %}">
+                  {{ row.pod }}
+                </span>
+              {% else %}
+                <span class="text-gray-400 text-xs">Unassigned</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-2.5 text-right text-gray-500">{{ row.count }}</td>
+            <td class="px-4 py-2.5 text-right text-gray-600">
+              {% if row.fees_sold is not none %}${{ "{:,.0f}".format(row.fees_sold) }}{% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-4 py-2.5 text-right {% if row.over_count > 0 %}text-red-600 font-semibold{% else %}text-gray-400{% endif %}">
+              {% if row.over_count > 0 %}{{ row.over_count }} of {{ row.count }}{% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-4 py-2.5 text-right font-semibold {% if has_over %}text-red-600{% else %}text-gray-400{% endif %}">
+              {% if has_over %}
+                (${{ "{:,.0f}".format(row.held_time_over | abs) }})
+              {% elif row.held_time_over is not none and row.held_time_over == 0 %}
+                &mdash;
+              {% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-4 py-2.5 text-right font-bold {% if has_over %}text-red-600{% else %}text-gray-400{% endif %}">
+              {% if row.pct_held is not none %}{{ "{:.1%}".format(row.pct_held) }}{% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-4 py-2.5 pl-6 w-48">
+              {% if row.pct_held is not none %}
+                {% set bar_pct = [row.pct_held | abs * 100, 100] | min %}
+                <div class="w-full bg-gray-100 rounded-full h-2">
+                  <div class="h-2 rounded-full {% if has_over %}bg-red-400{% else %}bg-gray-200{% endif %}"
+                       style="width: {{ bar_pct | round(1) }}%"></div>
+                </div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot class="bg-gray-50 border-t-2 border-gray-200 text-xs font-bold">
+          <tr>
+            <td class="px-4 py-2.5 text-gray-600">All PODs</td>
+            <td class="px-4 py-2.5 text-right text-gray-600">{{ completed_projects | length }}</td>
+            <td class="px-4 py-2.5 text-right">
+              ${{ "{:,.0f}".format(ns.total_fees_all) }}
+            </td>
+            <td class="px-4 py-2.5 text-right text-red-600">
+              {% if ns.total_over_count > 0 %}{{ ns.total_over_count }} of {{ completed_projects | length }}{% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-4 py-2.5 text-right {% if ns.total_over < 0 %}text-red-600{% else %}text-gray-400{% endif %}">
+              {% if ns.total_over < 0 %}(${{ "{:,.0f}".format(ns.total_over | abs) }}){% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-4 py-2.5 text-right {% if ns.total_over < 0 %}text-red-600{% else %}text-gray-400{% endif %}">
+              {% if ns.total_fees_all %}{{ "{:.1%}".format(ns.total_over / ns.total_fees_all) }}{% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-4 py-2.5"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+  {% endif %}
 
   <div id="completed-section" class="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
     <table class="min-w-full text-sm" id="completed-table">
       <thead class="bg-gray-700 text-white text-xs uppercase tracking-wide">
         <tr>
           <th class="px-3 py-3 text-left cursor-pointer" onclick="sortTable('completed-table',0)">Project</th>
-          <th class="px-3 py-3 text-left cursor-pointer" onclick="sortTable('completed-table',1)">Date Completed</th>
+          <th class="px-3 py-3 text-left cursor-pointer" onclick="sortTable('completed-table',1)">Ready For Takeover (SP)</th>
           <th class="px-3 py-3 text-left cursor-pointer" onclick="sortTable('completed-table',2)">Designer</th>
           <th class="px-3 py-3 text-left">POD</th>
           <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('completed-table',4)">SQFT</th>
           <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('completed-table',5)">Fees Sold</th>
-          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('completed-table',6)">Actual Fees</th>
-          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('completed-table',7)">Sold vs Spent</th>
-          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('completed-table',8)">COs</th>
-          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('completed-table',9)">Fee + CO</th>
-          <th class="px-3 py-3 text-right cursor-pointer" onclick="sortTable('completed-table',10)">Held Time</th>
+          <th class="px-3 py-3 text-right">Actual Fees</th>
+          <th class="px-3 py-3 text-right">Sold vs Spent</th>
+          <th class="px-3 py-3 text-right">COs</th>
+          <th class="px-3 py-3 text-right">Fee + CO</th>
+          <th class="px-3 py-3 text-right">Held Time</th>
           <th class="px-3 py-3 text-left">Notes</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100">
         {% for p in completed_projects %}
-          {% set over = p.held_time < 0 %}
-          <tr class="{% if over %}bg-red-50 hover:bg-red-100{% else %}bg-white hover:bg-gray-50{% endif %} transition-colors">
+          {% set over     = p.held_time is not none and p.held_time < 0 %}
+          {% set is_new   = p.new_completion is defined and p.new_completion %}
+          <tr class="{% if is_new %}bg-amber-50 hover:bg-amber-100{% elif over %}bg-red-50 hover:bg-red-100{% else %}bg-white hover:bg-gray-50{% endif %} transition-colors">
             <td class="px-3 py-2.5 font-medium max-w-xs">
-              <span class="text-gray-400 text-xs mr-1">[{{ p.id }}]</span>{{ p.name }}
+              <span class="text-gray-400 text-xs mr-1">[{{ p.number }}]</span>{{ p.name }}
+              {% if is_new %}
+                <span class="ml-1 text-xs font-semibold bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded" title="Detected in Wrike D-Completion but not yet in your tracker — add to Excel to complete the record">⚠ Add to tracker</span>
+              {% endif %}
             </td>
-            <td class="px-3 py-2.5 text-gray-600 whitespace-nowrap">{{ p.date_completed }}</td>
-            <td class="px-3 py-2.5 whitespace-nowrap">{{ p.designer }}</td>
+            <td class="px-3 py-2.5 text-gray-600 whitespace-nowrap">
+              {{ p.date_completed or '—' }}
+            </td>
+            <td class="px-3 py-2.5 whitespace-nowrap">{{ p.designer or '—' }}</td>
             <td class="px-3 py-2.5">
-              <span class="text-xs font-medium px-2 py-0.5 rounded
-                {% if p.pod == 'POD 1' %}bg-blue-100 text-blue-700
-                {% elif p.pod == 'POD 2' %}bg-purple-100 text-purple-700
-                {% else %}bg-teal-100 text-teal-700{% endif %}">
-                {{ p.pod }}
-              </span>
-            </td>
-            <td class="px-3 py-2.5 text-right text-gray-600">{{ "{:,}".format(p.sqft) }}</td>
-            <td class="px-3 py-2.5 text-right">${{ "{:,.0f}".format(p.fees_sold) }}</td>
-            <td class="px-3 py-2.5 text-right">${{ "{:,.0f}".format(p.actual_fees) }}</td>
-            <td class="px-3 py-2.5 text-right {% if p.sold_vs_spent < 0 %}text-red-600{% else %}text-green-600{% endif %} font-medium">
-              {% if p.sold_vs_spent < 0 %}(${{ "{:,.0f}".format(p.sold_vs_spent | abs) }}){% else %}${{ "{:,.0f}".format(p.sold_vs_spent) }}{% endif %}
+              {% if p.pod %}
+                <span class="text-xs font-medium px-2 py-0.5 rounded
+                  {% if 'POD 1' in p.pod %}bg-blue-100 text-blue-700
+                  {% elif 'POD 2' in p.pod %}bg-purple-100 text-purple-700
+                  {% else %}bg-teal-100 text-teal-700{% endif %}">
+                  {{ p.pod }}
+                </span>
+              {% else %}&mdash;{% endif %}
             </td>
             <td class="px-3 py-2.5 text-right text-gray-600">
-              {% if p.cos > 0 %}${{ "{:,.0f}".format(p.cos) }}{% else %}&mdash;{% endif %}
+              {% if p.sqft %}{{ "{:,}".format(p.sqft) }}{% else %}&mdash;{% endif %}
             </td>
-            <td class="px-3 py-2.5 text-right">${{ "{:,.0f}".format(p.fee_plus_co) }}</td>
-            <td class="px-3 py-2.5 text-right font-semibold {% if over %}text-red-600{% else %}text-green-600{% endif %}">
-              {% if over %}(${{ "{:,.0f}".format(p.held_time | abs) }}){% else %}${{ "{:,.0f}".format(p.held_time) }}{% endif %}
+            <td class="px-3 py-2.5 text-right">
+              {% if p.fees_sold %}${{ "{:,.0f}".format(p.fees_sold) }}{% else %}&mdash;{% endif %}
             </td>
-            <td class="px-3 py-2.5 text-gray-500 text-xs max-w-xs">{{ p.notes }}</td>
+            <td class="px-3 py-2.5 text-right text-gray-400 italic">
+              {% if p.actual_fees is not none %}${{ "{:,.0f}".format(p.actual_fees) }}{% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-3 py-2.5 text-right font-medium {% if p.sold_vs_spent is not none and p.sold_vs_spent < 0 %}text-red-600{% elif p.sold_vs_spent is not none %}text-green-600{% else %}text-gray-400{% endif %}">
+              {% if p.sold_vs_spent is not none %}
+                {% if p.sold_vs_spent < 0 %}(${{ "{:,.0f}".format(p.sold_vs_spent | abs) }}){% else %}${{ "{:,.0f}".format(p.sold_vs_spent) }}{% endif %}
+              {% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-3 py-2.5 text-right">
+              <input type="text"
+                     data-project="{{ p.number }}"
+                     data-field="cos"
+                     value="{{ p.cos | int if p.cos is not none and p.cos > 0 else '' }}"
+                     placeholder="—"
+                     class="editable-cell w-20 text-right bg-transparent border-b border-transparent hover:border-gray-300 focus:border-clearspace-blue focus:outline-none focus:bg-white px-1 py-0.5 rounded-sm text-sm text-gray-600"
+              />
+            </td>
+            <td class="px-3 py-2.5 text-right">
+              {% if p.fee_plus_co is not none %}${{ "{:,.0f}".format(p.fee_plus_co) }}{% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-3 py-2.5 text-right font-semibold {% if over %}text-red-600{% elif p.held_time is not none %}text-green-600{% else %}text-gray-400{% endif %}">
+              {% if p.held_time is not none %}
+                {% if over %}(${{ "{:,.0f}".format(p.held_time | abs) }}){% else %}${{ "{:,.0f}".format(p.held_time) }}{% endif %}
+              {% else %}&mdash;{% endif %}
+            </td>
+            <td class="px-3 py-2.5 notes-cell">
+              <input type="text"
+                     data-project="{{ p.number }}"
+                     data-field="notes"
+                     value="{{ p.notes | e }}"
+                     placeholder="Add note…"
+                     class="editable-cell w-full bg-transparent border-b border-transparent hover:border-gray-300 focus:border-clearspace-blue focus:outline-none focus:bg-white px-1 py-0.5 rounded-sm text-xs text-gray-500"
+              />
+            </td>
           </tr>
         {% else %}
-          <tr><td colspan="12" class="px-4 py-8 text-center text-gray-400">No completed projects match the current filters.</td></tr>
+          <tr><td colspan="12" class="px-4 py-8 text-center text-gray-400">No completed projects found in the D-Completion folder.</td></tr>
         {% endfor %}
       </tbody>
       <tfoot class="bg-gray-100 text-xs font-bold border-t-2 border-gray-300">
+        {%- set c_fees = completed_projects | selectattr('fees_sold') | sum(attribute='fees_sold') -%}
+        {%- set c_ht_list = completed_projects | selectattr('held_time') | list -%}
+        {%- set c_ht = c_ht_list | sum(attribute='held_time') -%}
         <tr>
-          <td colspan="4" class="px-3 py-2.5 text-gray-600">Totals</td>
-          <td class="px-3 py-2.5 text-right">{{ "{:,}".format(completed_projects | sum(attribute='sqft')) }}</td>
-          <td class="px-3 py-2.5 text-right">${{ "{:,.0f}".format(completed_projects | sum(attribute='fees_sold')) }}</td>
-          <td class="px-3 py-2.5 text-right">${{ "{:,.0f}".format(completed_projects | sum(attribute='actual_fees')) }}</td>
-          <td class="px-3 py-2.5 text-right {% if completed_projects | sum(attribute='sold_vs_spent') < 0 %}text-red-600{% else %}text-green-600{% endif %}">
-            {% set svs = completed_projects | sum(attribute='sold_vs_spent') %}
-            {% if svs < 0 %}(${{ "{:,.0f}".format(svs | abs) }}){% else %}${{ "{:,.0f}".format(svs) }}{% endif %}
+          <td colspan="4" class="px-3 py-2.5 text-gray-600">Totals ({{ completed_projects | length }} projects)</td>
+          <td class="px-3 py-2.5 text-right text-gray-500">
+            {{ "{:,}".format(completed_projects | selectattr('sqft') | sum(attribute='sqft')) }} sf
           </td>
-          <td class="px-3 py-2.5 text-right">${{ "{:,.0f}".format(completed_projects | sum(attribute='cos')) }}</td>
-          <td class="px-3 py-2.5 text-right">${{ "{:,.0f}".format(completed_projects | sum(attribute='fee_plus_co')) }}</td>
-          <td class="px-3 py-2.5 text-right {% if completed_summary.total_held < 0 %}text-red-600{% else %}text-green-600{% endif %}">
-            {% if completed_summary.total_held < 0 %}(${{ "{:,.0f}".format(completed_summary.total_held | abs) }}){% else %}${{ "{:,.0f}".format(completed_summary.total_held) }}{% endif %}
+          <td class="px-3 py-2.5 text-right">
+            ${{ "{:,.0f}".format(c_fees) }}
           </td>
-          <td></td>
+          <td class="px-3 py-2.5 text-right text-gray-400">&mdash;</td>
+          <td class="px-3 py-2.5 text-right text-gray-400">&mdash;</td>
+          <td class="px-3 py-2.5 text-right text-gray-400">&mdash;</td>
+          <td class="px-3 py-2.5 text-right text-gray-400">&mdash;</td>
+          <td class="px-3 py-2.5 text-right font-bold {% if c_ht_list %}{% if c_ht < 0 %}text-red-600{% else %}text-green-600{% endif %}{% else %}text-gray-400{% endif %}">
+            {% if c_ht_list %}
+              {% if c_ht < 0 %}(${{ "{:,.0f}".format(c_ht | abs) }}){% else %}${{ "{:,.0f}".format(c_ht) }}{% endif %}
+              {% if c_fees %}
+                <span class="text-xs font-normal ml-1 {% if c_ht < 0 %}text-red-400{% else %}text-green-500{% endif %}">
+                  ({{ "{:.1%}".format(c_ht / c_fees) }})
+                </span>
+              {% endif %}
+            {% else %}&mdash;{% endif %}
+          </td>
+          <td class="px-3 py-2.5"></td>
         </tr>
       </tfoot>
     </table>

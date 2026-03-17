@@ -1,6 +1,11 @@
+import sys
 import os
 from flask import Flask, render_template, jsonify, request
 from datetime import date
+from dotenv import load_dotenv
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+load_dotenv()
 
 app = Flask(
     __name__,
@@ -9,413 +14,137 @@ app = Flask(
 )
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key')
 
-# ---------------------------------------------------------------------------
-# Dummy data — replace with live Wrike API calls once connected
-# ---------------------------------------------------------------------------
-
-ACTIVE_PROJECTS = [
-    {
-        "id": "1264",
-        "name": "1 Adelaide E - 2601 - Foyston Gordon & Payne",
-        "status": "10 - Close Out",
-        "sqft": 10396,
-        "fees_sold": 72772.00,
-        "actual_fees": 93287.08,
-        "sold_vs_spent": -20515.08,
-        "designer": "Lucila Mckinlay",
-        "pod": "POD 1",
-        "cos": 3970.00,
-        "fee_plus_co": 76742.00,
-        "pct_phase": 0.91,
-        "pct_fee": 1.2156,
-        "held_time": -16545.08,
-        "ht_category": "POD 1 - Over fee",
-        "notes": "Over in DD and CD hours. CO sent a couple of weeks ago but still not paid yet.",
-    },
-    {
-        "id": "1268",
-        "name": "175 Bloor - 900 - Amorepacific",
-        "status": "7 - Demolition",
-        "sqft": 10286,
-        "fees_sold": 72009.00,
-        "actual_fees": 76942.51,
-        "sold_vs_spent": -4933.51,
-        "designer": "Lucila Mckinlay",
-        "pod": "POD 1",
-        "cos": 0.00,
-        "fee_plus_co": 72009.00,
-        "pct_phase": 0.71,
-        "pct_fee": 1.0685,
-        "held_time": -4933.51,
-        "ht_category": "POD 1 - Over fee",
-        "notes": "Longer SD phase with no CO for additional changes. Was at risk in SD.",
-    },
-    {
-        "id": "1270",
-        "name": "1 Adelaide St E - Suite 501 - GWL - Genesys",
-        "status": "8 - Rough Construction",
-        "sqft": 9150,
-        "fees_sold": 25162.50,
-        "actual_fees": 2863.75,
-        "sold_vs_spent": 22298.75,
-        "designer": "Jessica Baird",
-        "pod": "POD 2",
-        "cos": 60390.00,
-        "fee_plus_co": 85552.50,
-        "pct_phase": 0.74,
-        "pct_fee": 0.0335,
-        "held_time": 82688.75,
-        "ht_category": "",
-        "notes": "",
-    },
-    {
-        "id": "1331",
-        "name": "251 Queens Quay E - 4FL - Butterfield & Robinson",
-        "status": "9 - Finish Construction",
-        "sqft": 8454,
-        "fees_sold": 59184.00,
-        "actual_fees": 64527.50,
-        "sold_vs_spent": -5343.50,
-        "designer": "Mai Santuico",
-        "pod": "POD 3",
-        "cos": 0.00,
-        "fee_plus_co": 59184.00,
-        "pct_phase": 0.91,
-        "pct_fee": 1.0903,
-        "held_time": -5343.50,
-        "ht_category": "POD 3 - Over fee",
-        "notes": "",
-    },
-    {
-        "id": "1358",
-        "name": "70 York - 2 3 4 FL - Questrade",
-        "status": "9 - Finish Construction",
-        "sqft": 38757,
-        "fees_sold": 217811.00,
-        "actual_fees": 337410.00,
-        "sold_vs_spent": -119599.00,
-        "designer": "Mai Santuico",
-        "pod": "POD 3",
-        "cos": 61312.00,
-        "fee_plus_co": 279123.00,
-        "pct_phase": 0.91,
-        "pct_fee": 1.2088,
-        "held_time": -58287.00,
-        "ht_category": "POD 3 - Over fee",
-        "notes": "Design fees buried in extras in COs.",
-    },
-    {
-        "id": "1385",
-        "name": "1 City Centre - 1400 - GFT",
-        "status": "9 - Finish Construction",
-        "sqft": 18654,
-        "fees_sold": 130578.00,
-        "actual_fees": 77653.34,
-        "sold_vs_spent": 52924.66,
-        "designer": "Jessica Baird",
-        "pod": "POD 2",
-        "cos": 0.00,
-        "fee_plus_co": 130578.00,
-        "pct_phase": 0.91,
-        "pct_fee": 0.5947,
-        "held_time": 52924.66,
-        "ht_category": "",
-        "notes": "",
-    },
-    {
-        "id": "1457",
-        "name": "150 Sterling - 4FL - MGAC",
-        "status": "6 - Tender & Mobilization",
-        "sqft": 4155,
-        "fees_sold": 33240.00,
-        "actual_fees": 49102.50,
-        "sold_vs_spent": -15862.50,
-        "designer": "Mai Santuico",
-        "pod": "POD 3",
-        "cos": 0.00,
-        "fee_plus_co": 33240.00,
-        "pct_phase": 0.71,
-        "pct_fee": 1.4772,
-        "held_time": -15862.50,
-        "ht_category": "POD 3 - Over fee",
-        "notes": "Additional detailing time for architect client.",
-    },
-    {
-        "id": "1487",
-        "name": "121 King - 500 - Berkshire Hathaway Life",
-        "status": "9 - Finish Construction",
-        "sqft": 10016,
-        "fees_sold": 55941.75,
-        "actual_fees": 74428.75,
-        "sold_vs_spent": -18487.00,
-        "designer": "Lucila Mckinlay",
-        "pod": "POD 1",
-        "cos": 0.00,
-        "fee_plus_co": 55941.75,
-        "pct_phase": 0.91,
-        "pct_fee": 1.3305,
-        "held_time": -18487.00,
-        "ht_category": "POD 1 - Over fee",
-        "notes": "Kept revisions of layout to 3. Budget changes by client request.",
-    },
-    {
-        "id": "1502",
-        "name": "120 Victoria St - 2FL - KingSett",
-        "status": "9 - Finish Construction",
-        "sqft": 16526,
-        "fees_sold": 99166.00,
-        "actual_fees": 35139.60,
-        "sold_vs_spent": 64026.40,
-        "designer": "Mai Santuico",
-        "pod": "POD 3",
-        "cos": 0.00,
-        "fee_plus_co": 99166.00,
-        "pct_phase": 0.91,
-        "pct_fee": 0.3544,
-        "held_time": 64026.40,
-        "ht_category": "",
-        "notes": "",
-    },
-    {
-        "id": "1563",
-        "name": "Tangerine - 3389 Steeles Ave FL 8&9",
-        "status": "3 - Permit Documentation",
-        "sqft": 55938,
-        "fees_sold": 279690.00,
-        "actual_fees": 73591.25,
-        "sold_vs_spent": 206098.75,
-        "designer": "Lucila Mckinlay",
-        "pod": "POD 1",
-        "cos": 0.00,
-        "fee_plus_co": 279690.00,
-        "pct_phase": 0.25,
-        "pct_fee": 0.2631,
-        "held_time": 206098.75,
-        "ht_category": "",
-        "notes": "",
-    },
-    {
-        "id": "1584",
-        "name": "121 King St 900 - CNIB",
-        "status": "4 - Design Development",
-        "sqft": 23627,
-        "fees_sold": 129948.50,
-        "actual_fees": 41422.08,
-        "sold_vs_spent": 88526.42,
-        "designer": "Jessica Baird",
-        "pod": "POD 2",
-        "cos": 0.00,
-        "fee_plus_co": 129948.50,
-        "pct_phase": 0.25,
-        "pct_fee": 0.3188,
-        "held_time": 88526.42,
-        "ht_category": "",
-        "notes": "",
-    },
-    {
-        "id": "1536",
-        "name": "Hines Neuf - 150 Sterling Ave 4th FL - Suite A",
-        "status": "5 - Construction Documentation",
-        "sqft": 3933,
-        "fees_sold": 31467.00,
-        "actual_fees": 38412.50,
-        "sold_vs_spent": -6945.50,
-        "designer": "Mai Santuico",
-        "pod": "POD 3",
-        "cos": 0.00,
-        "fee_plus_co": 31467.00,
-        "pct_phase": 0.68,
-        "pct_fee": 1.2207,
-        "held_time": -6945.50,
-        "ht_category": "POD 3 - Over fee",
-        "notes": "",
-    },
-]
-
-COMPLETED_PROJECTS = [
-    {
-        "id": "1285",
-        "name": "390 Bay - 710 - Munich RE",
-        "date_completed": "2026-01-02",
-        "sqft": 4824,
-        "fees_sold": 28944.00,
-        "actual_fees": 27450.02,
-        "sold_vs_spent": 1493.98,
-        "designer": "Lucila Mckinlay",
-        "pod": "POD 1",
-        "cos": 0.00,
-        "fee_plus_co": 28944.00,
-        "held_time": 1493.98,
-        "ht_category": "",
-        "notes": "",
-    },
-    {
-        "id": "1291",
-        "name": "390 Bay - 1520 - Munich RE",
-        "date_completed": "2026-01-02",
-        "sqft": 3565,
-        "fees_sold": 17825.00,
-        "actual_fees": 23305.43,
-        "sold_vs_spent": -5480.43,
-        "designer": "Lucila Mckinlay",
-        "pod": "POD 1",
-        "cos": 1600.00,
-        "fee_plus_co": 19425.00,
-        "held_time": -3880.43,
-        "ht_category": "POD 1 - Over fee",
-        "notes": "",
-    },
-    {
-        "id": "1345",
-        "name": "3250 Bloor W - 430 - ACH Foods",
-        "date_completed": "2026-01-02",
-        "sqft": 2500,
-        "fees_sold": 17500.00,
-        "actual_fees": 27628.75,
-        "sold_vs_spent": -10128.75,
-        "designer": "Mai Santuico",
-        "pod": "POD 3",
-        "cos": 0.00,
-        "fee_plus_co": 17500.00,
-        "held_time": -10128.75,
-        "ht_category": "POD 3 - Over fee",
-        "notes": "Project size under 2500sf vs fee by sqft.",
-    },
-    {
-        "id": "1275",
-        "name": "1 Adelaide E - 500 - GWL Motion Recruitment",
-        "date_completed": "2026-01-12",
-        "sqft": 4589,
-        "fees_sold": 32123.00,
-        "actual_fees": 35031.41,
-        "sold_vs_spent": -2908.41,
-        "designer": "Jessica Baird",
-        "pod": "POD 2",
-        "cos": 0.00,
-        "fee_plus_co": 32123.00,
-        "held_time": -2908.41,
-        "ht_category": "POD 2 - Over fee",
-        "notes": "Under $1000 HT, no reason required.",
-    },
-    {
-        "id": "1554",
-        "name": "The Canadian Press - 33 Yonge St 605",
-        "date_completed": "2026-02-23",
-        "sqft": 10920,
-        "fees_sold": 5000.00,
-        "actual_fees": 20221.25,
-        "sold_vs_spent": -15221.25,
-        "designer": "Jessica Baird",
-        "pod": "POD 2",
-        "cos": 7672.00,
-        "fee_plus_co": 12672.00,
-        "held_time": -7549.25,
-        "ht_category": "POD 2 - Over fee",
-        "notes": "Reason missing.",
-    },
-    {
-        "id": "1600",
-        "name": "3389 Steeles Ave 401 - Tangerine",
-        "date_completed": "2026-03-02",
-        "sqft": 7500,
-        "fees_sold": 5000.00,
-        "actual_fees": 7021.66,
-        "sold_vs_spent": -2021.66,
-        "designer": "Lucila Mckinlay",
-        "pod": "POD 1",
-        "cos": 0.00,
-        "fee_plus_co": 5000.00,
-        "held_time": -2021.66,
-        "ht_category": "POD 1 - Over fee",
-        "notes": "Under $1000 HT, no reason required.",
-    },
-    {
-        "id": "1414",
-        "name": "2510 Royal Windsor - Carttera",
-        "date_completed": "2026-03-09",
-        "sqft": 1356,
-        "fees_sold": 15000.00,
-        "actual_fees": 7053.33,
-        "sold_vs_spent": 7946.67,
-        "designer": "Mai Santuico",
-        "pod": "POD 3",
-        "cos": 0.00,
-        "fee_plus_co": 15000.00,
-        "held_time": 7946.67,
-        "ht_category": "",
-        "notes": "",
-    },
-]
-
-PHASE_BENCHMARKS = {
-    "1 - Feasibility": 0.05,
-    "2 - Schematic Design": 0.09,
-    "3 - Permit Documentation": 0.25,
-    "4 - Design Development": 0.25,
-    "5 - Construction Documentation": 0.68,
-    "6 - Tender & Mobilization": 0.71,
-    "7 - Demolition": 0.71,
-    "8 - Rough Construction": 0.74,
-    "9 - Finish Construction": 0.91,
-    "10 - Close Out": 0.91,
-    "11 - Takeover": 1.00,
-}
-
 
 def compute_summary(projects):
-    total = len(projects)
-    over_fee = sum(1 for p in projects if p["held_time"] < 0)
-    total_held = sum(p["held_time"] for p in projects if p["held_time"] is not None)
-    total_fees_sold = sum(p["fees_sold"] for p in projects if p["fees_sold"] is not None)
+    total      = len(projects)
+    over_fee   = sum(1 for p in projects if p.get('held_time') is not None and p['held_time'] < 0)
+    # Held time = only the over-fee portion (negative values = $ spent beyond budget)
+    total_held = sum(p['held_time'] for p in projects if p.get('held_time') is not None and p['held_time'] < 0)
+    total_fees = sum(p['fees_sold'] for p in projects if p.get('fees_sold') is not None)
     return {
-        "total": total,
-        "over_fee": over_fee,
-        "under_fee": total - over_fee,
-        "total_held": total_held,
-        "total_fees_sold": total_fees_sold,
+        'total':           total,
+        'over_fee':        over_fee,
+        'under_fee':       total - over_fee,
+        'total_held':      total_held,
+        'total_fees_sold': total_fees,
     }
 
 
-@app.route("/")
+def compute_pod_summary(projects):
+    """Group projects by POD.
+    held_time_over = sum of only negative held_time (over-fee / at-risk $).
+    held_time_net  = net of all held_time values (positive + negative).
+    """
+    pods = {}
+    for p in projects:
+        pod = p.get('pod') or 'Unassigned'
+        if pod not in pods:
+            pods[pod] = {
+                'held_time_over': 0.0,  # sum of negatives only
+                'held_time_net':  0.0,  # full net
+                'fees_sold': 0.0,
+                'count': 0,
+                'over_count': 0,
+                'has_ht': False, 'has_fees': False,
+            }
+        ht = p.get('held_time')
+        if ht is not None:
+            pods[pod]['held_time_net'] += ht
+            if ht < 0:
+                pods[pod]['held_time_over'] += ht
+                pods[pod]['over_count'] += 1
+            pods[pod]['has_ht'] = True
+        if p.get('fees_sold') is not None:
+            pods[pod]['fees_sold'] += p['fees_sold']
+            pods[pod]['has_fees'] = True
+        pods[pod]['count'] += 1
+
+    result = []
+    for pod, d in sorted(pods.items()):
+        over  = d['held_time_over'] if d['has_ht'] else None
+        net   = d['held_time_net']  if d['has_ht'] else None
+        fs    = d['fees_sold']      if d['has_fees'] else None
+        pct   = (over / fs) if (over is not None and fs) else None
+        result.append({
+            'pod':            pod,
+            'count':          d['count'],
+            'over_count':     d['over_count'],
+            'held_time_over': over,   # $ over-fee (negative values summed)
+            'held_time_net':  net,    # net for reference
+            'fees_sold':      fs,
+            'pct_held':       pct,    # over / fees_sold
+        })
+    return result
+
+
+@app.route('/')
 def index():
-    pod_filter = request.args.get("pod", "all")
-    designer_filter = request.args.get("designer", "all")
+    from services.wrike_client import get_active_projects, get_completed_projects
+    from services.excel_parser import get_file_info
 
-    active = ACTIVE_PROJECTS
-    completed = COMPLETED_PROJECTS
+    pod_filter      = request.args.get('pod', 'all')
+    designer_filter = request.args.get('designer', 'all')
 
-    if pod_filter != "all":
-        active = [p for p in active if p["pod"] == pod_filter]
-        completed = [p for p in completed if p["pod"] == pod_filter]
-    if designer_filter != "all":
-        active = [p for p in active if p["designer"] == designer_filter]
-        completed = [p for p in completed if p["designer"] == designer_filter]
+    active    = get_active_projects()
+    completed = get_completed_projects()
+    file_info = get_file_info()
 
-    pods = sorted(set(p["pod"] for p in ACTIVE_PROJECTS + COMPLETED_PROJECTS))
-    designers = sorted(set(p["designer"] for p in ACTIVE_PROJECTS + COMPLETED_PROJECTS))
+    # Collect filter options before applying filters
+    pods      = sorted(set(p['pod'] for p in active + completed if p.get('pod')))
+    designers = sorted(set(p['designer'] for p in active + completed if p.get('designer')))
+
+    if pod_filter != 'all':
+        active    = [p for p in active    if p.get('pod') == pod_filter]
+        completed = [p for p in completed if p.get('pod') == pod_filter]
+    if designer_filter != 'all':
+        active    = [p for p in active    if p.get('designer') == designer_filter]
+        completed = [p for p in completed if p.get('designer') == designer_filter]
 
     return render_template(
-        "index.html",
-        active_projects=active,
-        completed_projects=completed,
-        active_summary=compute_summary(active),
-        completed_summary=compute_summary(completed),
-        pods=pods,
-        designers=designers,
-        pod_filter=pod_filter,
-        designer_filter=designer_filter,
-        report_date=date.today().strftime("%B %d, %Y"),
-        is_dummy=True,
+        'index.html',
+        active_projects      = active,
+        completed_projects   = completed,
+        active_summary       = compute_summary(active),
+        completed_summary    = compute_summary(completed),
+        completed_pod_summary= compute_pod_summary(completed),
+        pods                 = pods,
+        designers            = designers,
+        pod_filter           = pod_filter,
+        designer_filter      = designer_filter,
+        report_date          = date.today().strftime('%B %d, %Y'),
+        is_dummy             = False,
+        file_info            = file_info,
     )
 
 
-@app.route("/api/projects")
+@app.route('/api/override', methods=['POST'])
+def api_override():
+    """Save a dashboard-editable field (cos or notes) for a project."""
+    from services.excel_parser import save_override
+    data    = request.get_json(force=True)
+    num     = str(data.get('project_number', '')).strip()
+    field   = data.get('field', '')
+    value   = data.get('value', '')
+    if not num or field not in ('cos', 'notes'):
+        return jsonify({'ok': False, 'error': 'invalid request'}), 400
+    save_override(num, field, value)
+    return jsonify({'ok': True})
+
+
+@app.route('/api/projects')
 def api_projects():
-    return jsonify({
-        "active": ACTIVE_PROJECTS,
-        "completed": COMPLETED_PROJECTS,
-    })
+    from services.wrike_client import get_active_projects, get_completed_projects
+    active    = get_active_projects()
+    completed = get_completed_projects()
+    # Convert date objects to strings for JSON
+    for p in active + completed:
+        for k in ('current_sp', 'current_cc', 'current_cstart'):
+            if p.get(k):
+                p[k] = p[k].isoformat()
+    return jsonify({'active': active, 'completed': completed})
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    print(f'\n  Held Time Report running at: http://localhost:{port}\n')
+    app.run(debug=True, port=port)

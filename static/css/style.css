@@ -7,21 +7,17 @@ thead th {
   z-index: 10;
 }
 
-/* Truncate long text in table cells */
-td.max-w-xs {
-  max-width: 220px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* Notes column — wider and wraps */
+td.notes-cell {
+  min-width: 260px;
+  max-width: 420px;
+  white-space: normal;
+  word-break: break-word;
 }
 
-td.max-w-xs:hover {
-  white-space: normal;
-  overflow: visible;
-  background: white;
-  z-index: 5;
-  position: relative;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+td.notes-cell input.editable-cell {
+  min-width: 240px;
+  width: 100%;
 }
 
 /* Sort arrow indicator */
@@ -33,3 +29,20 @@ th[onclick]:hover::after {
 
 th.sort-asc::after  { content: ' ↑'; font-size: 0.7em; }
 th.sort-desc::after { content: ' ↓'; font-size: 0.7em; }
+
+/* Editable cells */
+.editable-cell {
+  cursor: text;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.editable-cell:focus {
+  cursor: text;
+  box-shadow: 0 0 0 2px rgba(27, 79, 138, 0.15);
+}
+@keyframes saved-flash {
+  0%   { background-color: #d1fae5; }
+  100% { background-color: transparent; }
+}
+.saved-flash {
+  animation: saved-flash 0.8s ease-out forwards;
+}
