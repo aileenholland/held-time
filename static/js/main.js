@@ -74,6 +74,24 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// ── Refresh button spin animation ─────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const btn  = document.getElementById('refresh-btn');
+  const icon = document.getElementById('refresh-icon');
+  if (btn && icon) {
+    btn.addEventListener('click', () => {
+      icon.style.transition = 'transform 0.8s linear';
+      icon.style.transform  = 'rotate(360deg)';
+      btn.style.opacity = '0.7';
+      btn.style.pointerEvents = 'none';
+      // reset after animation so the page can navigate
+      setTimeout(() => {
+        icon.style.transform = 'rotate(0deg)';
+      }, 850);
+    });
+  }
+});
+
 // ── Collapsible sections ───────────────────────────────────────────────────
 function toggleSection(sectionId, btn) {
   const el = document.getElementById(sectionId);

@@ -1,7 +1,7 @@
 import sys
 import os
 from flask import Flask, render_template, jsonify, request
-from datetime import date
+from datetime import date, datetime
 from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -112,6 +112,7 @@ def index():
         pod_filter           = pod_filter,
         designer_filter      = designer_filter,
         report_date          = date.today().strftime('%B %d, %Y'),
+        refreshed_at         = datetime.now().strftime('%B %d, %Y at %I:%M %p'),
         is_dummy             = False,
         file_info            = file_info,
     )

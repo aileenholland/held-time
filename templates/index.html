@@ -6,20 +6,7 @@
   {% if is_dummy %}
     <span class="bg-yellow-400 text-yellow-900 text-xs font-semibold px-2 py-1 rounded">DUMMY DATA</span>
   {% endif %}
-  <div class="flex items-center gap-3 text-sm text-blue-200">
-    {% if file_info and file_info.billing_file %}
-      <span title="Fee data from: {{ file_info.billing_file }}">
-        📄 {{ file_info.billing_file }}
-        {% if file_info.billing_date %}<span class="text-blue-300">({{ file_info.billing_date }})</span>{% endif %}
-      </span>
-    {% endif %}
-    <span class="text-blue-300">|</span>
-    <span>{{ report_date }}</span>
-    <a href="/" title="Reload data from latest Excel file"
-       class="ml-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded transition-colors">
-      ↺ Refresh
-    </a>
-  </div>
+  <span class="text-blue-300 text-sm">{{ report_date }}</span>
 {% endblock %}
 
 {% block content %}
@@ -50,6 +37,95 @@
     <a href="/" class="text-sm text-clearspace-blue underline self-end pb-1.5">Clear filters</a>
   {% endif %}
 </form>
+
+{# ── Data Sources / Refresh bar ───────────────────────────────────────────── #}
+<div class="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+  <div class="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+
+    {# Left: data source info #}
+    <div class="flex flex-wrap gap-6 text-sm">
+
+      {# Wrike #}
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
+        <div>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide leading-none mb-0.5">Wrike</p>
+          <p class="text-gray-700 font-medium">Projects · Designers · Dates</p>
+        </div>
+      </div>
+
+      <div class="w-px bg-gray-200 self-stretch hidden sm:block"></div>
+
+      {# Excel Billing Export #}
+      <div class="flex items-center gap-2">
+        {% if file_info and file_info.billing_file %}
+          <span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
+        {% else %}
+          <span class="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
+        {% endif %}
+        <div>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide leading-none mb-0.5">Weekly Billing Export</p>
+          {% if file_info and file_info.billing_file %}
+            <p class="text-gray-700 font-medium">
+              📄 {{ file_info.billing_file }}
+              {% if file_info.billing_date %}
+                <span class="text-gray-400 font-normal ml-1">· saved {{ file_info.billing_date }}</span>
+              {% endif %}
+            </p>
+          {% else %}
+            <p class="text-red-500 font-medium">No export found in folder</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="w-px bg-gray-200 self-stretch hidden sm:block"></div>
+
+      {# Held Time Tracker #}
+      <div class="flex items-center gap-2">
+        {% if file_info and file_info.tracker_exists %}
+          <span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
+        {% else %}
+          <span class="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
+        {% endif %}
+        <div>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide leading-none mb-0.5">Held Time Tracker</p>
+          <p class="{% if file_info and file_info.tracker_exists %}text-gray-700{% else %}text-red-500{% endif %} font-medium">
+            {% if file_info and file_info.tracker_exists %}2026 Held time tracker.xlsx{% else %}File not found{% endif %}
+          </p>
+        </div>
+      </div>
+
+      <div class="w-px bg-gray-200 self-stretch hidden sm:block"></div>
+
+      {# Last refreshed #}
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-blue-400 inline-block"></span>
+        <div>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide leading-none mb-0.5">Last Refreshed</p>
+          <p class="text-gray-700 font-medium">{{ refreshed_at }}</p>
+        </div>
+      </div>
+    </div>
+
+    {# Right: Refresh button #}
+    <a href="/"
+       id="refresh-btn"
+       class="flex items-center gap-2 bg-clearspace-blue hover:bg-blue-700 text-white font-semibold text-sm px-5 py-2.5 rounded-lg shadow-sm transition-colors whitespace-nowrap">
+      <svg id="refresh-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      </svg>
+      Refresh Data
+    </a>
+  </div>
+
+  {# Folder path tooltip #}
+  <div class="px-5 py-2 bg-gray-50 border-t border-gray-100 text-xs text-gray-400">
+    Scanning:
+    <span class="font-mono">C:\Users\Aileen Holland\Clearspace Offices\Design - Admin\Design Fees\Held time reports\2026\</span>
+    — drop your weekly Monday export here and click <strong>Refresh Data</strong>
+  </div>
+</div>
 
 {# ── Summary cards ────────────────────────────────────────────────────────── #}
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
