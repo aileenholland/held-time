@@ -18,15 +18,20 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key')
 def compute_summary(projects):
     total      = len(projects)
     over_fee   = sum(1 for p in projects if p.get('held_time') is not None and p['held_time'] < 0)
-    # Held time = only the over-fee portion (negative values = $ spent beyond budget)
+    # Over-fee: only negative held_time values ($ spent beyond budget)
     total_held = sum(p['held_time'] for p in projects if p.get('held_time') is not None and p['held_time'] < 0)
+    # Net: all held_time values (positive = under budget, negative = over)
+    total_held_net = sum(p['held_time'] for p in projects if p.get('held_time') is not None)
     total_fees = sum(p['fees_sold'] for p in projects if p.get('fees_sold') is not None)
+    pct_held   = (total_held / total_fees) if total_fees else None
     return {
         'total':           total,
         'over_fee':        over_fee,
         'under_fee':       total - over_fee,
         'total_held':      total_held,
+        'total_held_net':  total_held_net,
         'total_fees_sold': total_fees,
+        'pct_held':        pct_held,   # over-fee / fees sold
     }
 
 
@@ -86,7 +91,7 @@ def index():
     designer_filter = request.args.get('designer', 'all')
 
     active    = get_active_projects()
-    completed = get_completed_projects()
+    completed = [p for p in get_completed_projects() if not p.get('new_completion')]
     file_info = get_file_info()
 
     # Collect filter options before applying filters
