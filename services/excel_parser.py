@@ -75,12 +75,12 @@ TRACKER_FILENAME = '2026 Held time tracker.xlsx'
 def _open_workbook(path):
     """Open a workbook, copying to a temp file first if it is locked by Excel."""
     try:
-        return load_workbook(path, read_only=True, data_only=True)
+        return load_workbook(path, data_only=True)
     except PermissionError:
         tmp = tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False)
         tmp.close()
         shutil.copy2(path, tmp.name)
-        return load_workbook(tmp.name, read_only=True, data_only=True)
+        return load_workbook(tmp.name, data_only=True)
 
 
 def _safe_float(val):
