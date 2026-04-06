@@ -75,6 +75,17 @@ def _get_contact_map():
     }
 
 
+def _get_status_map():
+    """Return {customStatusId: statusName} from all workspace workflows."""
+    resp = requests.get(f'{WRIKE_BASE_URL}/workflows', headers=_headers())
+    resp.raise_for_status()
+    mapping = {}
+    for wf in resp.json().get('data', []):
+        for s in wf.get('customStatuses', []):
+            mapping[s['id']] = s['name']
+    return mapping
+
+
 def _get_child_ids(folder_id):
     resp = requests.get(f'{WRIKE_BASE_URL}/folders/{folder_id}', headers=_headers())
     resp.raise_for_status()
@@ -95,7 +106,7 @@ def _fetch_projects_batch(ids):
     return resp.json().get('data', [])
 
 
-def _parse_project(proj, contacts):
+def _parse_project(proj, contacts, status_map=None):
     """Convert a Wrike folder record into a dashboard dict."""
     cfl = proj.get('customFields', [])
     title = proj.get('title', '')
@@ -120,6 +131,10 @@ def _parse_project(proj, contacts):
     current_cc  = _parse_date(_cf(cfl, CF['current_cc']))
     current_cstart = _parse_date(_cf(cfl, CF['current_cstart']))
 
+    # Phase from Wrike workflow custom status
+    custom_status_id = (proj.get('project') or {}).get('customStatusId')
+    phase = (status_map or {}).get(custom_status_id, '') if custom_status_id else ''
+
     return {
         'id':             proj['id'],
         'number':         number,
@@ -140,6 +155,7 @@ def _parse_project(proj, contacts):
         'held_time':      None,
         'ht_category':    '',
         'notes':          '',
+        'phase':          phase,
         # Dates
         'current_sp':     current_sp,
         'current_cc':     current_cc,
@@ -160,7 +176,9 @@ def _merge_excel_data(projects, billing_data, active_tracker, completed_tracker=
             b = billing_data[num]
             p['actual_fees']   = b.get('actual_fees')
             p['sold_vs_spent'] = b.get('sold_vs_spent')
-            p['phase']         = b.get('status_xl', '')
+            # Phase comes from Wrike; only fall back to Excel if Wrike has none
+            if not p.get('phase'):
+                p['phase'] = b.get('status_xl', '')
             # Fill blanks from Wrike with Excel values
             if not p.get('designer') and b.get('designer_xl'):
                 p['designer'] = b['designer_xl']
@@ -210,6 +228,8 @@ def get_active_projects():
 
     contacts = _get_contact_map()
 
+    status_map = _get_status_map()
+
     all_ids = []
     for folder_id in [FOLDER_B_DESIGN, FOLDER_C_CONSTRUCTION]:
         all_ids.extend(_get_child_ids(folder_id))
@@ -218,7 +238,7 @@ def get_active_projects():
     for i in range(0, len(all_ids), 100):
         records.extend(_fetch_projects_batch(all_ids[i:i + 100]))
 
-    projects = [_parse_project(p, contacts) for p in records]
+    projects = [_parse_project(p, contacts, status_map) for p in records]
 
     _, _, billing_data  = get_latest_billing_export()
     active_tracker, _   = get_tracker_data()
@@ -245,7 +265,8 @@ def get_completed_projects():
     """
     from services.excel_parser import get_latest_billing_export, get_tracker_data
 
-    contacts = _get_contact_map()
+    contacts   = _get_contact_map()
+    status_map = _get_status_map()
 
     # ── Build Wrike lookup from D-Completion (+ Z-Closed) ────────────────────
     d_ids = set(_get_child_ids(FOLDER_D_COMPLETION))
@@ -259,7 +280,7 @@ def get_completed_projects():
     wrike_by_num   = {}
     in_d_completion = set()
     for rec in records:
-        p   = _parse_project(rec, contacts)
+        p   = _parse_project(rec, contacts, status_map)
         num = p['number']
         if num and num not in wrike_by_num:
             wrike_by_num[num] = p
