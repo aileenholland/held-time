@@ -30,6 +30,22 @@ th[onclick]:hover::after {
 th.sort-asc::after  { content: ' ↑'; font-size: 0.7em; }
 th.sort-desc::after { content: ' ↓'; font-size: 0.7em; }
 
+/* Data source badges — (W) Wrike, (E) Excel, (M) Manual */
+.src-badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 1px 3px;
+  border-radius: 3px;
+  vertical-align: middle;
+  opacity: 0.75;
+  letter-spacing: 0.02em;
+}
+.src-w { background: rgba(255,255,255,0.25); color: #fff; }
+.src-e { background: rgba(255,255,255,0.25); color: #fff; }
+.src-m { background: rgba(255,255,255,0.25); color: #fff; }
+
 /* Editable cells */
 .editable-cell {
   cursor: text;
