@@ -225,7 +225,7 @@ def _merge_excel_data(projects, billing_data, active_tracker, completed_tracker=
             if p.get('pct_phase') is None:
                 p['pct_phase'] = t.get('pct_phase')
             # pct_fee is now calculated from actual_fees / fees_sold — not from Excel
-            p['held_time']    = t.get('held_time')
+            # held_time is now calculated as Fee+CO − Actual Fees
             p['ht_category']  = t.get('ht_category', '')
             p['notes']        = t.get('notes', '')
             # Completed Projects sheet also carries actual fees, sold vs spent,
@@ -264,6 +264,10 @@ def _merge_excel_data(projects, billing_data, active_tracker, completed_tracker=
 
         # ── % Fee = Actual Fees / Fees Sold ──────────────────────────────────
         p['pct_fee'] = round(actual / fees, 4) if (actual is not None and fees) else None
+
+        # ── Held Time = Fee + CO − Actual Fees ───────────────────────────────
+        fee_plus_co = p.get('fee_plus_co')
+        p['held_time'] = round(fee_plus_co - actual, 2) if (fee_plus_co is not None and actual is not None) else None
 
 
 def get_active_projects():
