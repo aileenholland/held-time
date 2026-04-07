@@ -66,6 +66,25 @@ def _parse_pod(pod_raw):
     return raw
 
 
+_TOTAL_PHASES = 11  # D&B Projects workflow: phases 1–11 + X (Completed)
+
+def _phase_to_pct(phase_name):
+    """Calculate % complete from a D&B phase name.
+    '6 - Tender & Mobilization' → 6/11 ≈ 0.545
+    'X - Completed'             → 1.0
+    Returns None if phase name is blank or unrecognised.
+    """
+    if not phase_name:
+        return None
+    s = str(phase_name).strip()
+    if s.upper().startswith('X'):
+        return 1.0
+    m = re.match(r'^(\d+)', s)
+    if m:
+        return round(int(m.group(1)) / _TOTAL_PHASES, 4)
+    return None
+
+
 def _get_contact_map():
     resp = requests.get(f'{WRIKE_BASE_URL}/contacts', headers=_headers())
     resp.raise_for_status()
@@ -131,9 +150,10 @@ def _parse_project(proj, contacts, status_map=None):
     current_cc  = _parse_date(_cf(cfl, CF['current_cc']))
     current_cstart = _parse_date(_cf(cfl, CF['current_cstart']))
 
-    # Phase from Wrike workflow custom status
+    # Phase + % Phase from Wrike workflow custom status
     custom_status_id = (proj.get('project') or {}).get('customStatusId')
-    phase = (status_map or {}).get(custom_status_id, '') if custom_status_id else ''
+    phase     = (status_map or {}).get(custom_status_id, '') if custom_status_id else ''
+    pct_phase = _phase_to_pct(phase)
 
     return {
         'id':             proj['id'],
@@ -150,7 +170,7 @@ def _parse_project(proj, contacts, status_map=None):
         'sold_vs_spent':  None,
         'cos':            None,
         'fee_plus_co':    None,
-        'pct_phase':      None,
+        'pct_phase':      pct_phase,
         'pct_fee':        None,
         'held_time':      None,
         'ht_category':    '',
@@ -191,7 +211,10 @@ def _merge_excel_data(projects, billing_data, active_tracker, completed_tracker=
             t = tracker[num]
             p['cos']          = t.get('cos')
             p['fee_plus_co']  = t.get('fee_plus_co')
-            p['pct_phase']    = t.get('pct_phase')
+            # pct_phase is now calculated from the Wrike phase — don't overwrite
+            # with the stale Excel value; only use Excel as fallback if Wrike gave none
+            if p.get('pct_phase') is None:
+                p['pct_phase'] = t.get('pct_phase')
             p['pct_fee']      = t.get('pct_fee')
             p['held_time']    = t.get('held_time')
             p['ht_category']  = t.get('ht_category', '')
