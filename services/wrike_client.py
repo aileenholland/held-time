@@ -220,7 +220,6 @@ def _merge_excel_data(projects, billing_data, active_tracker, completed_tracker=
         if num in tracker:
             t = tracker[num]
             p['cos']          = t.get('cos')
-            p['fee_plus_co']  = t.get('fee_plus_co')
             # pct_phase is now calculated from the Wrike phase — don't overwrite
             # with the stale Excel value; only use Excel as fallback if Wrike gave none
             if p.get('pct_phase') is None:
@@ -253,6 +252,11 @@ def _merge_excel_data(projects, billing_data, active_tracker, completed_tracker=
                     pass
             if 'notes' in ov:
                 p['notes'] = ov['notes']
+
+        # ── Fee + CO calculated from Fees Sold + COs ─────────────────────────
+        fees = p.get('fees_sold')
+        cos  = p.get('cos')
+        p['fee_plus_co'] = round(fees + (cos or 0), 2) if fees is not None else None
 
 
 def get_active_projects():
