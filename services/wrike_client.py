@@ -224,7 +224,7 @@ def _merge_excel_data(projects, billing_data, active_tracker, completed_tracker=
             # with the stale Excel value; only use Excel as fallback if Wrike gave none
             if p.get('pct_phase') is None:
                 p['pct_phase'] = t.get('pct_phase')
-            p['pct_fee']      = t.get('pct_fee')
+            # pct_fee is now calculated from actual_fees / fees_sold — not from Excel
             p['held_time']    = t.get('held_time')
             p['ht_category']  = t.get('ht_category', '')
             p['notes']        = t.get('notes', '')
@@ -257,6 +257,10 @@ def _merge_excel_data(projects, billing_data, active_tracker, completed_tracker=
         fees = p.get('fees_sold')
         cos  = p.get('cos')
         p['fee_plus_co'] = round(fees + (cos or 0), 2) if fees is not None else None
+
+        # ── % Fee = Actual Fees / Fees Sold ──────────────────────────────────
+        actual = p.get('actual_fees')
+        p['pct_fee'] = round(actual / fees, 4) if (actual is not None and fees) else None
 
 
 def get_active_projects():
