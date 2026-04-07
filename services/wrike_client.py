@@ -258,8 +258,11 @@ def _merge_excel_data(projects, billing_data, active_tracker, completed_tracker=
         cos  = p.get('cos')
         p['fee_plus_co'] = round(fees + (cos or 0), 2) if fees is not None else None
 
-        # ── % Fee = Actual Fees / Fees Sold ──────────────────────────────────
+        # ── Sold vs Spent = Fees Sold − Actual Fees ──────────────────────────
         actual = p.get('actual_fees')
+        p['sold_vs_spent'] = round(fees - actual, 2) if (fees is not None and actual is not None) else p.get('sold_vs_spent')
+
+        # ── % Fee = Actual Fees / Fees Sold ──────────────────────────────────
         p['pct_fee'] = round(actual / fees, 4) if (actual is not None and fees) else None
 
 
