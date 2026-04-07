@@ -66,13 +66,23 @@ def _parse_pod(pod_raw):
     return raw
 
 
-_TOTAL_PHASES = 11  # D&B Projects workflow: phases 1–11 + X (Completed)
+_PHASE_PCT = {
+    1:  0.05,
+    2:  0.09,
+    3:  0.25,
+    4:  0.25,
+    5:  0.68,
+    6:  0.71,
+    7:  0.71,
+    8:  0.74,
+    9:  0.91,
+    10: 0.91,
+    11: 1.00,
+}
 
 def _phase_to_pct(phase_name):
-    """Calculate % complete from a D&B phase name.
-    '6 - Tender & Mobilization' → 6/11 ≈ 0.545
-    'X - Completed'             → 1.0
-    Returns None if phase name is blank or unrecognised.
+    """Return the correct % complete for a D&B phase name.
+    'X - Completed' → 1.0.  Returns None if blank or unrecognised.
     """
     if not phase_name:
         return None
@@ -81,7 +91,7 @@ def _phase_to_pct(phase_name):
         return 1.0
     m = re.match(r'^(\d+)', s)
     if m:
-        return round(int(m.group(1)) / _TOTAL_PHASES, 4)
+        return _PHASE_PCT.get(int(m.group(1)))
     return None
 
 
