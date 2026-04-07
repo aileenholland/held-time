@@ -45,6 +45,7 @@ th.sort-desc::after { content: ' ↓'; font-size: 0.7em; }
 .src-w { background: rgba(255,255,255,0.25); color: #fff; }
 .src-e { background: rgba(255,255,255,0.25); color: #fff; }
 .src-m { background: rgba(255,255,255,0.25); color: #fff; }
+.src-d { background: rgba(255,255,255,0.25); color: #fff; }
 
 /* Editable cells */
 .editable-cell {
