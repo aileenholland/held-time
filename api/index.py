@@ -5,7 +5,7 @@ from datetime import date, datetime
 from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-load_dotenv()
+load_dotenv(override=True)
 
 app = Flask(
     __name__,
